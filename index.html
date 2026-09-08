@@ -138,7 +138,9 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxXD9cIsvXXaLT0
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function copyPix(){navigator.clipboard.writeText(document.getElementById('pixKey').textContent.trim()).then(()=>toast('Chave Pix copiada.')).catch(()=>toast('Selecione e copie a chave Pix.'))}
-function chooseGift(name,value){toast(name+' · R$ '+value.toFixed(2).replace('.',',')+' selecionado. Agora é só enviar o Pix.');document.getElementById('pix').scrollIntoView({behavior:'smooth'})}
+function chooseGift(name, value) {
+  abrirPix(name, value);
+}
 function scrollToRsvp(){document.getElementById('confirmar').scrollIntoView({behavior:'smooth'})}
 
 function renderGuests(guests){
