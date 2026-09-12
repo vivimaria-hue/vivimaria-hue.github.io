@@ -338,51 +338,42 @@ loadGuests();
 
   </div>
 </div>
-
-
 <script>
 
 const CHAVE_PIX = '67196543300';
 
 
-// Abre o modal e gera o Pix
+// =============================
+// MODAL PIX
+// =============================
+
 function abrirPix(nomePresente, valor) {
 
   const modal = document.getElementById('pixModal');
-
   const titulo = document.getElementById('pixTitulo');
-
   const valorElemento = document.getElementById('pixValor');
-
   const campoPix = document.getElementById('pixCopiaCola');
-
   const qrCode = document.getElementById('qrcode');
-
   const mensagemCopiado = document.getElementById('pixCopiado');
 
-
   titulo.textContent = nomePresente;
-
   valorElemento.textContent = formatarMoeda(valor);
-
   mensagemCopiado.style.display = 'none';
 
-
-  // Gera o código Pix
+  // Gera o Pix Copia e Cola
   const codigoPix = gerarPix(
     CHAVE_PIX,
     valor,
     'VIVI40',
-    'Vivi'
+    'VIVI'
   );
 
+  console.log('PIX GERADO:', codigoPix);
 
   campoPix.value = codigoPix;
 
-
   // Limpa QR Code anterior
   qrCode.innerHTML = '';
-
 
   // Gera novo QR Code
   new QRCode(qrCode, {
@@ -392,31 +383,30 @@ function abrirPix(nomePresente, valor) {
     correctLevel: QRCode.CorrectLevel.M
   });
 
-
   modal.style.display = 'flex';
-
 }
 
 
-// Fecha o modal
+// =============================
+// FECHAR MODAL
+// =============================
+
 function fecharPix() {
-
   document.getElementById('pixModal').style.display = 'none';
-
 }
 
 
-// Fecha clicando fora do modal
 document.getElementById('pixModal').addEventListener('click', function(e) {
-
   if (e.target === this) {
     fecharPix();
   }
-
 });
 
 
-// Copia o Pix
+// =============================
+// COPIAR PIX
+// =============================
+
 async function copiarPix() {
 
   const campo = document.getElementById('pixCopiaCola');
@@ -428,17 +418,19 @@ async function copiarPix() {
   } catch (e) {
 
     campo.select();
-
+    campo.setSelectionRange(0, 99999);
     document.execCommand('copy');
 
   }
 
   document.getElementById('pixCopiado').style.display = 'block';
-
 }
 
 
-// Formata valor
+// =============================
+// FORMATA MOEDA
+// =============================
+
 function formatarMoeda(valor) {
 
   return Number(valor).toLocaleString('pt-BR', {
@@ -449,48 +441,10 @@ function formatarMoeda(valor) {
 }
 
 
-// Cria o Pix Copia e Cola
-function gerarPix(chave, valor, identificador, nome) {
+// =============================
+// TAMANHO DO CAMPO PIX
+// =============================
 
-  const valorFormatado = Number(valor).toFixed(2);
-
-  const payload =
-
-    '000201' +
-
-    '26360014BR.GOV.BCB.PIX' +
-
-    '01' + tamanho(chave) + chave +
-
-    '52040000' +
-
-    '5303986' +
-
-    '54' + tamanho(valorFormatado) + valorFormatado +
-
-    '5802BR' +
-
-    '59' + tamanho(nome) + nome +
-
-    '6008BRASILIA' +
-
-    '62' +
-
-    tamanho(
-      '05' + tamanho(identificador) + identificador
-    ) +
-
-    '05' + tamanho(identificador) + identificador +
-
-    '6304';
-
-
-  return payload + crc16(payload);
-
-}
-
-
-// Retorna o tamanho de uma string
 function tamanho(texto) {
 
   return String(texto).length.toString().padStart(2, '0');
@@ -498,38 +452,118 @@ function tamanho(texto) {
 }
 
 
-// Calcula CRC16
+// =============================
+// PIX COPIA E COLA
+// =============================
+
+function gerarPix(chave, valor, identificador, nome) {
+
+  // Valor sempre com duas casas
+  const valorFormatado = Number(valor).toFixed(2);
+
+  // ---------------------------------
+  // Merchant Account Information
+  // ---------------------------------
+  //
+  // 00 = GUI
+  // 14 = BR.GOV.BCB.PIX
+  //
+  // 01 = chave Pix
+  // 11 = tamanho da chave CPF
+  //
+  const merchantAccount =
+    '00' +
+    '14' +
+    'BR.GOV.BCB.PIX' +
+    '01' +
+    tamanho(chave) +
+    chave;
+
+  // ---------------------------------
+  // Additional Data Field
+  // ---------------------------------
+  //
+  // 05 = Reference Label
+  // VIVI40 = identificador
+  //
+  const additionalData =
+    '05' +
+    tamanho(identificador) +
+    identificador;
+
+  // ---------------------------------
+  // Payload completo
+  // ---------------------------------
+
+  const payload =
+    '000201' +
+
+    // Merchant Account Information
+    '26' +
+    tamanho(merchantAccount) +
+    merchantAccount +
+
+    // Merchant Category Code
+    '52040000' +
+
+    // Transaction Currency - BRL
+    '5303986' +
+
+    // Transaction Amount
+    '54' +
+    tamanho(valorFormatado) +
+    valorFormatado +
+
+    // Country Code
+    '5802BR' +
+
+    // Merchant Name
+    '59' +
+    tamanho(nome) +
+    nome +
+
+    // Merchant City
+    '6008BRASILIA' +
+
+    // Additional Data Field
+    '62' +
+    tamanho(additionalData) +
+    additionalData +
+
+    // CRC
+    '6304';
+
+  return payload + crc16(payload);
+}
+
+
+// =============================
+// CRC16 DO PIX
+// =============================
+
 function crc16(payload) {
 
   let crc = 0xFFFF;
-
 
   for (let i = 0; i < payload.length; i++) {
 
     crc ^= payload.charCodeAt(i) << 8;
 
-
     for (let j = 0; j < 8; j++) {
 
       if ((crc & 0x8000) !== 0) {
-
-        crc = (crc << 1) ^ 0x1021;
-
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
       } else {
-
-        crc = crc << 1;
-
+        crc = (crc << 1) & 0xFFFF;
       }
 
-      crc &= 0xFFFF;
-
     }
-
   }
 
-
-  return crc.toString(16).toUpperCase().padStart(4, '0');
-
+  return crc
+    .toString(16)
+    .toUpperCase()
+    .padStart(4, '0');
 }
 
 </script>
